@@ -3,6 +3,7 @@ package org.apache.iotdb.experiment;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
+import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -17,6 +18,7 @@ public class SessionInsertExperiment {
 
     public static void main(String[] args) {
         Session session = new Session("127.0.0.1", 6667, "root", "root");
+        session.setFetchSize(2048);
 
         try {
             session.open(false);
@@ -24,7 +26,18 @@ public class SessionInsertExperiment {
             long startTime = System.currentTimeMillis();
             insertTablet(session);
             long endTime = System.currentTimeMillis();
+
             System.out.println("Session insert " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
+
+            startTime = System.currentTimeMillis();
+            SessionDataSet sessionDataSet = session.executeQueryStatement("select temperature from root.ln.wf01.wt01");
+            while (sessionDataSet.hasNext()) {
+                sessionDataSet.next();
+            }
+            endTime = System.currentTimeMillis();
+
+            System.out.println("Session query " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
+
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             e.printStackTrace();
         }

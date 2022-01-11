@@ -31,10 +31,10 @@ public class JDBCInsertExperiment {
 
     private static void jdbcInsert(Statement statement) throws SQLException {
         // 设置设备名字，设备下面的传感器名字，各个传感器的类型
-        statement.execute("SET STORAGE GROUP TO root.sg1");
+        statement.execute("SET STORAGE GROUP TO root.ln");
         statement.execute(
                 "CREATE TIMESERIES " +
-                        ".status WITH DATATYPE=BOOLEAN, ENCODING=RLE, COMPRESSOR=SNAPPY");
+                        "root.ln.wf01.wt01.status WITH DATATYPE=BOOLEAN, ENCODING=RLE, COMPRESSOR=SNAPPY");
         statement.execute(
                 "CREATE TIMESERIES root.ln.wf01.wt01.temperature WITH DATATYPE=DOUBLE, ENCODING=RLE, COMPRESSOR=SNAPPY");
         statement.execute(
