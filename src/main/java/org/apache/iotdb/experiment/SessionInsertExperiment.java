@@ -3,7 +3,6 @@ package org.apache.iotdb.experiment;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
-import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -16,37 +15,51 @@ import static org.apache.iotdb.experiment.Constant.TOTAL_INSERT_ROW_COUNT;
 
 public class SessionInsertExperiment {
 
-    public static void main(String[] args) {
-        Session session = new Session("127.0.0.1", 6667, "root", "root");
-        session.setFetchSize(2048);
+    public static void main(String[] args) throws InterruptedException, IoTDBConnectionException, StatementExecutionException {
 
-        try {
-            session.open(false);
-            // 记录耗时
-            long startTime = System.currentTimeMillis();
-            insertTablet(session);
-            long endTime = System.currentTimeMillis();
+        // 记录耗时
+        long startTime = System.currentTimeMillis();
+//        Thread[] threadArray = new Thread[10];
+//        for (int i = 0; i < 10; i++) {
+//            final int deviceId = i;
+//            threadArray[i] = new Thread(() -> {
+//                try {
+//                    insertRecords(deviceId);
+//                } catch (IoTDBConnectionException | StatementExecutionException e) {
+//                    e.printStackTrace();
+//                }
+//            });
+//            threadArray[i].start();
+//        }
+//
+//        for (int i = 0; i < 10; i++) {
+//            threadArray[i].join();
+//        }
 
-            System.out.println("Session insert " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
+        insertTablet();
 
-            startTime = System.currentTimeMillis();
-            SessionDataSet sessionDataSet = session.executeQueryStatement("select temperature from root.ln.wf01.wt01");
-            while (sessionDataSet.hasNext()) {
-                sessionDataSet.next();
-            }
-            endTime = System.currentTimeMillis();
+        long endTime = System.currentTimeMillis();
 
-            System.out.println("Session query " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
+        System.out.println("Session insert " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
 
-        } catch (IoTDBConnectionException | StatementExecutionException e) {
-            e.printStackTrace();
-        }
+//            startTime = System.currentTimeMillis();
+//            SessionDataSet sessionDataSet = session.executeQueryStatement("select temperature from root.ln.wf01.wt01");
+//            while (sessionDataSet.hasNext()) {
+//                sessionDataSet.next();
+//            }
+//            endTime = System.currentTimeMillis();
+//
+//            System.out.println("Session query " + TOTAL_INSERT_ROW_COUNT + " rows cost: " + (endTime - startTime) + "ms.");
+
     }
 
     /**
      * 使用Session.insertTablet接口插入某一个设备的数据
      */
-    private static void insertTablet(Session session) throws IoTDBConnectionException, StatementExecutionException {
+    private static void insertTablet() throws IoTDBConnectionException, StatementExecutionException {
+        Session session = new Session("127.0.0.1", 6667, "root", "root");
+        session.setFetchSize(2048);
+        session.open(false);
         /*
          * 一个Tablet例子:
          * deviceID: root.ln.wf01.wt01
@@ -88,5 +101,50 @@ public class SessionInsertExperiment {
             session.insertTablet(tablet);
             tablet.reset();
         }
+    }
+
+    private static void insertRecords(int index) throws IoTDBConnectionException, StatementExecutionException {
+        Session session = new Session("127.0.0.1", 6667, "root", "root");
+        session.setFetchSize(2048);
+        session.open(false);
+
+        String deviceId = "root.sg1.d" + index;
+        List<String> measurements = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            measurements.add("s" + i);
+        }
+        List<String> deviceIds = new ArrayList<>();
+        List<List<String>> measurementsList = new ArrayList<>();
+        List<List<Object>> valuesList = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>();
+        List<List<TSDataType>> typesList = new ArrayList<>();
+
+        for (long time = 0; time < TOTAL_INSERT_ROW_COUNT; time++) {
+            List<Object> values = new ArrayList<>();
+            List<TSDataType> types = new ArrayList<>();
+            for (long value = 1L; value <= 10L; value++) {
+                values.add(value);
+                types.add(TSDataType.INT64);
+            }
+
+            deviceIds.add(deviceId);
+            measurementsList.add(measurements);
+            valuesList.add(values);
+            typesList.add(types);
+            timestamps.add(time);
+            if (time != 0 && time % 100000 == 0) {
+                long startTime = System.currentTimeMillis();
+                session.insertRecords(deviceIds, timestamps, measurementsList, typesList, valuesList);
+                long endTime = System.currentTimeMillis();
+                System.out.println("write 1000000 records cost: " + (endTime - startTime));
+                deviceIds.clear();
+                measurementsList.clear();
+                valuesList.clear();
+                typesList.clear();
+                timestamps.clear();
+            }
+        }
+
+        session.insertRecords(deviceIds, timestamps, measurementsList, typesList, valuesList);
     }
 }
