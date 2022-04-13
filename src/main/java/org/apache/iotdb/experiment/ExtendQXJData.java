@@ -109,7 +109,7 @@ public class ExtendQXJData {
 
     long delta = endTime - startTime + 1;
     int count = 1;
-    long finalEndTime = startTime + 365L * 10 * 24 * 60 * 60 * 1000;
+    long finalEndTime = startTime + 365L * 30 * 24 * 60 * 60 * 1000;
     long timestamp = startTime;
     long rowCount = 0;
     String querySql = "select " + schemaList.stream().map(MeasurementSchema::getMeasurementId).collect(Collectors.joining(",")) + " from " + device;
